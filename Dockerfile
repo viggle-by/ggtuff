@@ -1,29 +1,24 @@
-# syntax=docker/dockerfile:1
-
-############################
-# Stage 1 — Download rootfs
-############################
+# Stage 1 — Download
 FROM alpine:3.19 AS downloader
 
-RUN apk add --no-cache curl ca-certificates tar
+RUN apk add --no-cache curl tar ca-certificates
 
-WORKDIR /download
+WORKDIR /
 
-# Download WSL root filesystem
+# Download the WSL root filesystem
 RUN curl -fL \
     https://cdimage.ubuntu.com/ubuntu-wsl/daily-live/current/resolute-wsl-amd64.wsl \
     -o rootfs.tar.gz
 
-# Verify it's a valid tar archive (fails build if corrupted)
-RUN tar -tzf rootfs.tar.gz > /dev/null
+# Extract it directly into /
+RUN tar -xzf rootfs.tar.gz \
+    && rm rootfs.tar.gz
 
 
-##################################
-# Stage 2 — Extract into scratch
-##################################
+# Stage 2 — Final scratch image
 FROM scratch
 
-# Add and auto-extract rootfs into /
-ADD --from=downloader /download/rootfs.tar.gz /
+# Copy entire extracted filesystem
+COPY --from=downloader / /
 
 CMD ["/bin/bash"]
